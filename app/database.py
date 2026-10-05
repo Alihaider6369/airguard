@@ -11,6 +11,13 @@ from typing import Iterator
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+import os
+
+# PythonAnywhere Proxy Fix for External APIs
+os.environ["HTTP_PROXY"] = "http://proxy.server:3128"
+os.environ["HTTPS_PROXY"] = "http://proxy.server:3128"
+os.environ["http_proxy"] = "http://proxy.server:3128"
+os.environ["https_proxy"] = "http://proxy.server:3128"
 
 from app.config import settings
 
