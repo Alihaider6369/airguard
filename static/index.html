@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AirGuard - Air quality in Pakistan</title>
+<style>
+  :root { --bg:#f4f6f8; --card:#fff; --text:#1c2733; --muted:#66727f; --line:#e3e8ee; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0f151b; --card:#18212a; --text:#e8eef3; --muted:#93a1ae; --line:#26323d; } }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); }
+  main { max-width: 720px; margin: 0 auto; padding: 20px 16px 40px; }
+  h1 { font-size: 1.4rem; margin: 0 0 14px; }
+  .bar { display:flex; gap:8px; flex-wrap:wrap; position:relative; }
+  input { flex:1 1 200px; padding:12px 14px; border:1px solid var(--line); border-radius:10px; font-size:1rem; background:var(--card); color:var(--text); }
+  button { padding:12px 16px; border:0; border-radius:10px; font-size:1rem; cursor:pointer; background:#1f6feb; color:#fff; }
+  #results { position:absolute; top:52px; left:0; right:0; background:var(--card); border:1px solid var(--line); border-radius:10px; z-index:5; display:none; }
+  #results div { padding:10px 14px; cursor:pointer; } #results div:hover { background:var(--bg); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; margin-top:16px; }
+  .where { color:var(--muted); font-size:.9rem; margin-bottom:8px; }
+  .aqi { display:flex; align-items:center; gap:16px; }
+  .badge { min-width:92px; padding:14px 10px; border-radius:12px; text-align:center; color:#111; font-weight:700; font-size:2rem; }
+  .badge small { display:block; font-size:.7rem; font-weight:600; }
+  h2 { font-size:1rem; margin:0 0 10px; color:var(--muted); font-weight:600; }
+  .big { font-size:1.4rem; font-weight:700; }
+  .muted { color:var(--muted); font-size:.85rem; margin-top:10px; }
+  #msg { margin-top:12px; color:#c0392b; }
+</style>
+</head>
+<body>
+<main>
+  <h1>AirGuard <span style="font-weight:400;color:var(--muted)">- air quality in Pakistan</span></h1>
+  <div class="bar">
+    <input id="q" placeholder="Search any city in Pakistan..." autocomplete="off">
+    <button id="locate">📍 Use my location</button>
+    <div id="results"></div>
+  </div>
+  <div id="msg"></div>
+  <div id="out"></div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const fmt = d => new Date(d + "Z").toLocaleString([], {weekday:"short", hour:"2-digit", minute:"2-digit"});
+const arrow = {rising:"▲ rising", falling:"▼ falling", stable:"→ stable"};
+
+async function load(params, label) {
+  $("msg").textContent = ""; $("out").innerHTML = '<div class="card">Loading ' + label + '...</div>';
+  try {
+    const r = await fetch("/api/dashboard?" + new URLSearchParams(params));
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || "Something went wrong");
+    render(d);
+  } catch (e) { $("out").innerHTML = ""; $("msg").textContent = e.message; }
+}
+
+function render(d) {
+  const c = d.current, f = d.forecast, now = c.status, next = f.status;
+  $("out").innerHTML = `
+    <div class="card">
+      <div class="where">📍 ${d.place.display_name} · updated ${c.data_age_hours} h ago</div>
+      <h2>Right now</h2>
+      <div class="aqi"><div class="badge" style="background:${now.color}">${now.aqi}<small>AQI</small></div>
+        <div><div class="big">${now.category}</div>PM2.5: ${c.reading.pm25} µg/m³</div></div>
+      <div class="muted">${now.advice}</div>
+    </div>
+    <div class="card">
+      <h2>Forecast for ${fmt(f.target_time)} (24 h ahead)</h2>
+      <div class="aqi"><div class="badge" style="background:${next.color}">${next.aqi}<small>AQI</small></div>
+        <div><div class="big">${next.category} · ${arrow[f.trend]}</div>
+        PM2.5: ${f.predicted_pm25} µg/m³${f.typical_error ? " (typical error ±" + f.typical_error + ")" : ""}</div></div>
+      <div class="muted">${f.note}</div>
+    </div>`;
+}
+
+function locate() {
+  if (!navigator.geolocation) return $("msg").textContent = "Your browser does not support location.";
+  $("msg").textContent = "Finding your location...";
+  navigator.geolocation.getCurrentPosition(
+    p => load({lat: p.coords.latitude, lon: p.coords.longitude}, "your location"),
+    e => { $("msg").textContent = e.code === 1 ? "Location is blocked. Allow it in the browser, or search for a city." : "Could not get your location."; },
+    {timeout: 15000, maximumAge: 600000});
+}
+$("locate").onclick = locate;
+
+// Search box with suggestions
+let timer;
+$("q").oninput = () => {
+  clearTimeout(timer); const q = $("q").value.trim();
+  if (q.length < 2) { $("results").style.display = "none"; return; }
+  timer = setTimeout(async () => {
+    const places = await (await fetch("/api/places/search?q=" + encodeURIComponent(q))).json();
+    $("results").innerHTML = ""; if (!Array.isArray(places) || !places.length) return $("results").style.display = "none";
+    places.forEach(p => { const el = document.createElement("div"); el.textContent = p.display_name;
+      el.onclick = () => { $("q").value = p.display_name; $("results").style.display = "none"; load({lat: p.latitude, lon: p.longitude}, p.name); };
+      $("results").appendChild(el); });
+    $("results").style.display = "block";
+  }, 300);
+};
+$("q").onkeydown = e => { if (e.key === "Enter" && $("q").value.trim()) { $("results").style.display = "none"; load({city: $("q").value.trim()}, $("q").value.trim()); } };
+
+// Automatic detection: if location is already allowed, use it at once; if the user
+// switches location on later, detect then. Otherwise show a default city.
+(async () => {
+  let started = false;
+  try {
+    const perm = await navigator.permissions.query({name: "geolocation"});
+    perm.onchange = () => { if (perm.state === "granted") locate(); };
+    if (perm.state === "granted") { started = true; locate(); }
+  } catch (_) {}
+  if (!started) load({city: "Lahore"}, "Lahore");
+})();
+</script>
+</body>
+</html>
