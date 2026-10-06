@@ -1,3 +1,26 @@
+# AirGuard – AI Air Pollution Prediction System for Pakistan
+
+**Live demo:** https://alihaider63.pythonanywhere.com/
+
+AirGuard shows live air quality for Pakistani cities, predicts tomorrow's PM2.5
+with a machine-learning model, and explains what is causing the pollution and
+how to stay safe.
+
+## Sustainable Development Goals
+- **SDG 3 – Good Health and Well-being:** warns people about unhealthy air and gives health precautions.
+- **SDG 11 – Sustainable Cities and Communities:** tracks air quality across major cities and shows pollution causes.
+- **SDG 13 – Climate Action:** explains pollution sources (fuel burning, dust, industry) and how to reduce them.
+
+## Features
+- Live AQI, PM2.5, PM10, NO₂ and CO for Pakistani cities
+- 24-hour PM2.5 forecast with typical model error
+- AQI history, map, alerts, causes and precautions
+- "My location" to see the nearest air-quality data
+
+## Tech stack
+FastAPI, SQLAlchemy + SQLite, scikit-learn (joblib model), Tailwind CSS, Chart.js, Leaflet.js. Hosted on PythonAnywhere.
+
+---
 # AirGuard - Live Air Quality & 24-Hour PM2.5 Forecast for Any City in Pakistan
 
 Type any Pakistani city or town; AirGuard shows the current air quality, the last
