@@ -22,6 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
+
 from app import crud, models  # noqa: F401  (models import registers the tables)
 from app.aqi import describe_pm25
 from app.config import settings
@@ -49,6 +50,8 @@ from app.services.live_data import get_recent_data
 from app.services.open_meteo import OpenMeteoError
 
 
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """Runs once when the server starts: make sure the tables exist."""
@@ -65,6 +68,8 @@ app = FastAPI(
     ),
     lifespan=lifespan,
 )
+from app.history_api import router as history_router
+app.include_router(history_router)
 
 # Allow the website (frontend) to call this API from the browser.
 app.add_middleware(
