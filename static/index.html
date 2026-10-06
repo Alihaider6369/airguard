@@ -54,11 +54,18 @@
           <input id="q" type="search" placeholder="Search a city…" class="w-full rounded-xl border border-slate-200 px-4 py-2.5">
           <div id="results" class="hidden absolute left-0 right-0 top-full mt-1 card shadow-lg z-40 max-h-64 overflow-auto"></div>
         </form>
+        <button id="locBtn" type="button" class="btn btn-s flex items-center gap-2" onclick="useMyLocation()"><i data-lucide="locate-fixed" class="w-4 h-4"></i>My location</button>
         <div id="hW" class="rounded-xl bg-slate-50 px-4 py-2 text-sm text-slate-600"></div>
         <div class="flex items-center gap-2"><span id="av" class="w-10 h-10 rounded-full bg-slate-800 text-white grid place-items-center font-bold text-sm"></span><b id="uname" class="hidden sm:block"></b></div>
       </div>
     </div>
   </header>
+  <div id="locBanner" class="hidden mx-4 lg:mx-6 mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4 flex flex-wrap items-center gap-3">
+    <i data-lucide="locate-fixed" class="text-blue-600"></i>
+    <p class="flex-1 min-w-[220px]"><b>See the air around you.</b> Allow your location and AirGuard will show the nearest air-quality data. It is used only for this lookup.</p>
+    <button class="btn btn-p" onclick="useMyLocation()">Use my location</button>
+    <button class="btn btn-s" onclick="dismissLoc()">Not now</button>
+  </div>
   <main id="view" class="p-4 lg:p-6 space-y-5"></main>
   <footer class="px-6 pb-8 text-sm text-slate-500">AirGuard supports SDG 3, 11 and 13. Predictions come from a machine-learning model and are estimates, not official health advisories.</footer>
 </div>
@@ -224,9 +231,41 @@ function alertsFor(r){
   return a;
 }
 
+/* ================= My location ================= */
+const km = (a, b, c, d) => { const t = x => x * Math.PI / 180, dLa = t(c - a), dLo = t(d - b);
+  const h = Math.sin(dLa / 2) ** 2 + Math.cos(t(a)) * Math.cos(t(c)) * Math.sin(dLo / 2) ** 2; return 12742 * Math.asin(Math.sqrt(h)); };
+function dismissLoc(){ sv('ag_locAsk', 1); $('locBanner').classList.add('hidden'); }
+function nearestCity(lat, lon){ let best; for (const c in COORDS){ const d = km(lat, lon, COORDS[c][0], COORDS[c][1]); if (!best || d < best.d) best = {c, d}; } return best; }
+async function loadMyLocation(lat, lon){
+  S.me = {lat, lon}; S.err = ''; S.loading = true; S.r = null; route();
+  try {
+    let r = null;
+    try {   // 1) ask the API for the exact point
+      const res = await fetch(`/api/air-quality/current?lat=${lat}&lon=${lon}`);
+      if (res.ok){ const raw = await res.json(); r = normalize(raw, 'Your location'); S.raw = raw;
+        const fr = await fetch(`/api/forecast?lat=${lat}&lon=${lon}`).catch(() => null);
+        if (fr && fr.ok) applyForecast(r, await fr.json()); }
+    } catch {}
+    if (!r || r.aqi == null){   // 2) fall back to the nearest known city
+      const c = await fetchCity(nearestCity(lat, lon).c); r = c.r; S.raw = c.raw; }
+    S.me.dist = r.lat != null ? km(lat, lon, r.lat, r.lon) : null;
+    S.r = r; S.city = r.city; logHist(r); fetchHist(r.city, 7);
+  } catch (e) { S.err = `Could not load air quality for your location. ${e.message}`; }
+  S.loading = false; route();
+}
+function useMyLocation(){
+  sv('ag_locAsk', 1); $('locBanner').classList.add('hidden');
+  if (!navigator.geolocation) return toast('Your browser does not support location.');
+  toast('Waiting for location permission…');
+  navigator.geolocation.getCurrentPosition(
+    p => { if (!/#\/(dashboard|map)/.test(location.hash)) location.hash = '#/dashboard'; loadMyLocation(+p.coords.latitude.toFixed(4), +p.coords.longitude.toFixed(4)); },
+    e => toast(e.code === 1 ? 'Location is blocked. Click the lock icon next to the web address, allow Location, then try again.' : e.code === 3 ? 'Location timed out. Please try again.' : 'Could not find your location.'),
+    {timeout:12000, maximumAge:300000});
+}
+
 /* ================= Loading & header ================= */
 async function loadCity(name){
-  S.city = name; S.err = ''; S.loading = true; S.r = null; route();
+  S.me = null; S.city = name; S.err = ''; S.loading = true; S.r = null; route();
   try { const c = await fetchCity(name); S.r = c.r; S.raw = c.raw; logHist(c.r); fetchHist(name, 7); if (S.range !== 7) fetchHist(name, S.range); }
   catch (e) { S.err = `Could not load air quality for ${name}. ${e.message} Try another city or retry.`; }
   S.loading = false; route();
@@ -266,8 +305,8 @@ const ring = (aqi, size = 180) => {
 const histChart = (id, days) => histFor(S.city, days).length > 1 ? `<div style="height:260px"><canvas id="${id}"></canvas></div>` : `<div class="grid place-content-center text-center text-slate-500 p-8" style="min-height:200px"><p>Not enough readings yet.</p><p class="text-sm">AirGuard saves a reading in this browser each time you check ${esc(S.city)}. Come back later to see the trend.</p></div>`;
 function drawHist(id, days){
   const h = histFor(S.city, days); if (h.length < 2 || !$(id)) return;
-  mk(id, {type:'line', data:{labels:h.map(x => new Date(x.t).toLocaleString('en-GB', x.db ? {day:'numeric', month:'short'} : {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})),
-    datasets:[{label:'AQI', data:h.map(x => x.aqi), borderColor:'#E5483D', backgroundColor:'rgba(229,72,61,.1)', fill:true, tension:.35}]},
+  mk(id, {type:'bar', data:{labels:h.map(x => new Date(x.t).toLocaleString('en-GB', x.db ? {day:'numeric', month:'short'} : {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})),
+    datasets:[{label:'AQI', data:h.map(x => x.aqi), backgroundColor:h.map(x => BANDS[bIdx(x.aqi)].c), borderRadius:6, maxBarThickness:48}]},
     options:{maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, title:{display:true, text:'AQI'}}}}});
 }
 function mk(id, cfg){ charts[id]?.destroy(); const el = $(id); if (el) charts[id] = new Chart(el, cfg); }
@@ -296,6 +335,7 @@ function pageDashboard(){
   const cards = ['pm25','pm10','no2','co','o3'].map(k => { const v = r[k], p = POL[k], L = v != null ? lvl(k, v) : null;
     return `<div class="card p-4 text-center"><p class="text-slate-600">${p.n}</p><p class="mt-1"><b class="text-2xl">${fN(v, k === 'co' ? 2 : 0)}</b> <span class="text-xs text-slate-500">${p.u}</span></p><div class="mt-2">${L == null ? badge('No data','#64748B','#F1F5F9') : badge(LVN[L], LVC[L], LVB[L])}</div></div>`; }).join('');
   return {html:`
+  ${S.me ? `<div class="card p-4 flex flex-wrap items-center gap-3"><i data-lucide="navigation" class="text-blue-600"></i><p class="flex-1 min-w-[220px]"><b>Your location</b> · ${S.me.lat}, ${S.me.lon}<br><span class="text-slate-600 text-sm">Showing air quality for <b>${esc(r.city)}</b>${S.me.dist != null ? ` (about ${Math.round(S.me.dist)} km from you)` : ''}.${S.me.dist > 150 ? ' This is the nearest data available, so it may differ from the air where you are.' : ''}</span></p><a href="#/map" class="btn btn-s">See on map</a></div>` : ''}
   <div class="grid xl:grid-cols-[320px_1fr] gap-5">
     <div class="card p-6 text-center">${r.aqi != null ? ring(r.aqi) : '<p class="py-16 text-slate-500">No AQI data</p>'}
       <div class="mt-4">${badge(b.name, b.c, b.bg)}</div><p class="mt-3 text-slate-600 text-sm">${ACT[bIdx(r.aqi ?? 0)].out}</p>${r.age != null ? `<p class="mt-2 text-xs text-slate-400">Updated ${r.age < 1 ? 'less than an hour' : r.age.toFixed(0) + ' hours'} ago</p>` : ''}</div>
@@ -346,6 +386,7 @@ function pageMap(){
     after(){
       mapObj?.remove(); mapObj = L.map('bigmap', {scrollWheelZoom:false}).setView([30.4, 69.3], 5);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:18, attribution:'© OpenStreetMap contributors'}).addTo(mapObj);
+      if (S.me){ L.circleMarker([S.me.lat, S.me.lon], {radius:9, color:'#fff', weight:3, fillColor:'#2563EB', fillOpacity:1}).addTo(mapObj).bindPopup('<b>You are here</b>').openPopup(); mapObj.setView([S.me.lat, S.me.lon], 8); }
       let done = 0;
       CITIES.forEach(async c => { try { const {r} = await fetchCity(c, true); const co = COORDS[c] || [r.lat, r.lon], b = BANDS[bIdx(r.aqi ?? 0)];
           if (!$('bigmap')) return;
@@ -445,6 +486,7 @@ q.addEventListener('keydown', e => { if (e.key === 'Escape') hide(); });
 /* ================= Start ================= */
 route(); lastRoute = location.hash;
 loadCity(CFG.city);
+if (navigator.geolocation && !ls('ag_locAsk', 0)) $('locBanner').classList.remove('hidden');
 </script>
 </body>
 </html>
