@@ -1,425 +1,450 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AirGuard - AI Air Pollution Prediction System</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Leaflet CSS & JS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AirGuard – AI Air Pollution Prediction System</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.383.0/dist/umd/lucide.min.js"></script>
+<style>
+  body{font-family:Inter,system-ui,sans-serif;background:#F1F5F9;color:#0F172A}
+  .card{background:#fff;border:1px solid #E2E8F0;border-radius:16px}
+  #nav a{display:flex;align-items:center;gap:.75rem;padding:.7rem 1rem;border-radius:.75rem;color:#B6C0D9;white-space:nowrap;font-weight:500}
+  #nav a:hover{background:#16224f;color:#fff}
+  #nav a.on{background:#2563EB;color:#fff}
+  .badge{display:inline-block;border-radius:999px;padding:.1rem .65rem;font-size:.75rem;font-weight:600}
+  .btn{border-radius:10px;padding:.55rem 1rem;font-weight:600;font-size:.9rem;cursor:pointer}
+  .btn-p{background:#2563EB;color:#fff}.btn-p:hover{background:#1D4ED8}
+  .btn-s{background:#F1F5F9;color:#334155}.btn-s:hover{background:#E2E8F0}
+  .btn.on{background:#2563EB;color:#fff}
+  :focus-visible{outline:3px solid #2563EB;outline-offset:2px}
+  #results button{display:block;width:100%;text-align:left;padding:.55rem .9rem}
+  #results button:hover{background:#F1F5F9}
+  .fade{animation:f .3s ease}@keyframes f{from{opacity:0}to{opacity:1}}
+  @media (prefers-reduced-motion:reduce){.fade{animation:none}}
+</style>
 </head>
-<body class="bg-slate-100 font-sans text-slate-800">
+<body>
+<aside class="lg:fixed lg:inset-y-0 lg:w-72 bg-[#0B1437] p-4 flex flex-col z-30">
+  <a href="#/home" class="flex items-center gap-3 mb-4 lg:mb-8 px-1">
+    <span class="w-11 h-11 rounded-xl bg-blue-600 grid place-items-center text-white"><i data-lucide="wind"></i></span>
+    <span><span class="block text-white text-xl font-bold leading-tight">AirGuard</span><span class="text-slate-400 text-sm">Clean Air • Healthy Future</span></span>
+  </a>
+  <nav id="nav" class="flex lg:flex-col gap-1 overflow-x-auto" aria-label="Main"></nav>
+  <div class="hidden lg:flex mt-auto items-center gap-3 rounded-xl border border-slate-700 p-3 text-sm">
+    <i data-lucide="trees" class="text-emerald-400"></i><span><b class="text-white block">Better Air</b><span class="text-slate-400">Better Tomorrow</span></span>
+  </div>
+</aside>
 
-    <div class="flex h-screen overflow-hidden">
-        
-        <!-- Sidebar -->
-        <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col justify-between p-4 flex-shrink-0 hidden md:flex">
-            <div>
-                <div class="flex items-center space-x-3 mb-8 px-2">
-                    <div class="bg-blue-600 p-2 rounded-lg text-white">
-                        <i class="fa-solid fa-wind text-xl"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-white font-bold text-lg leading-none">AirGuard</h1>
-                        <span class="text-xs text-slate-400">Clean Air • Healthy Future</span>
-                    </div>
-                </div>
-
-                <nav class="space-y-1">
-                    <a href="#" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
-                        <i class="fa-solid fa-house w-5 text-center"></i>
-                        <span>Home</span>
-                    </a>
-                    <a href="#" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg bg-blue-600 text-white font-medium">
-                        <i class="fa-solid fa-gauge-high w-5 text-center"></i>
-                        <span>Dashboard</span>
-                    </a>
-                    <a href="#" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
-                        <i class="fa-solid fa-chart-line w-5 text-center"></i>
-                        <span>Prediction</span>
-                    </a>
-                    <a href="#" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
-                        <i class="fa-solid fa-location-dot w-5 text-center"></i>
-                        <span>Map</span>
-                    </a>
-                    <a href="#" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition relative">
-                        <i class="fa-solid fa-bell w-5 text-center"></i>
-                        <span>Alerts</span>
-                        <span class="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full ml-auto">Live</span>
-                    </a>
-                </nav>
-            </div>
-
-            <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700/50 flex items-center space-x-3">
-                <i class="fa-solid fa-tree text-emerald-400 text-xl"></i>
-                <div class="text-xs">
-                    <p class="text-white font-semibold">Better Air</p>
-                    <p class="text-slate-400">Better Tomorrow</p>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="flex-1 overflow-y-auto p-6 space-y-6">
-
-            <!-- Top Search & Header -->
-            <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                <div class="flex-1">
-                    <div class="flex items-center space-x-2 text-blue-600 text-sm font-medium mb-1">
-                        <i class="fa-solid fa-location-dot"></i>
-                        <span id="current-city-label">Lahore, Pakistan</span>
-                    </div>
-                    <h2 class="text-2xl font-bold text-slate-800">AI Air Pollution Prediction System</h2>
-                </div>
-
-                <!-- Live City Search Bar -->
-                <div class="relative w-full md:w-80">
-                    <div class="flex items-center bg-slate-100 rounded-lg border border-slate-300 px-3 py-1.5 focus-within:ring-2 focus-within:ring-blue-500">
-                        <i class="fa-solid fa-magnifying-glass text-slate-400 mr-2"></i>
-                        <input type="text" id="city-search-input" placeholder="Search Pakistan City..." class="bg-transparent border-none outline-none text-sm w-full text-slate-700">
-                        <button id="search-btn" class="bg-blue-600 text-white text-xs px-3 py-1.5 rounded-md hover:bg-blue-700 transition">Search</button>
-                    </div>
-                    <div id="search-results" class="absolute left-0 right-0 top-12 bg-white border border-slate-200 rounded-lg shadow-lg z-50 hidden max-h-48 overflow-y-auto text-sm"></div>
-                </div>
-
-                <!-- Weather & User Info -->
-                <div class="flex items-center space-x-4">
-                    <div class="flex items-center space-x-3 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
-                        <i class="fa-solid fa-cloud-sun text-yellow-500 text-2xl"></i>
-                        <div class="text-xs">
-                            <span id="header-temp" class="text-base font-bold text-slate-800">--°C</span>
-                            <div class="text-[10px] text-slate-400">Humidity: <span id="header-humidity">--%</span> | Wind: <span id="header-wind">-- km/h</span></div>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center space-x-2 border-l pl-4 border-slate-200">
-                        <div class="w-8 h-8 rounded-full bg-slate-700 text-white flex items-center justify-center font-semibold text-sm">
-                            AH
-                        </div>
-                        <span class="text-sm font-medium text-slate-700">Ali Haider</span>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Current AQI & Pollutants Grid -->
-            <section class="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                
-                <!-- Main Gauge Card -->
-                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col items-center justify-center text-center">
-                    <div class="relative w-36 h-36 flex items-center justify-center">
-                        <div id="aqi-ring" class="w-full h-full rounded-full border-8 border-amber-500 flex flex-col items-center justify-center transition-colors">
-                            <span class="text-xs font-semibold text-slate-400">AQI</span>
-                            <span id="aqi-value" class="text-3xl font-extrabold text-slate-800">--</span>
-                            <i class="fa-solid fa-wind text-slate-400 text-xs mt-1"></i>
-                        </div>
-                    </div>
-                    <span id="aqi-status-badge" class="mt-3 px-3 py-1 bg-amber-100 text-amber-600 rounded-full text-xs font-semibold">Loading...</span>
-                    <p id="aqi-health-advice" class="text-[11px] text-slate-500 mt-2">Fetching live environmental data...</p>
-                </div>
-
-                <!-- Live Pollutants Grid -->
-                <div class="lg:col-span-3 grid grid-cols-2 md:grid-cols-5 gap-3">
-                    <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 text-center">
-                        <span class="text-xs font-semibold text-slate-500">PM2.5</span>
-                        <div class="text-xl font-bold text-slate-800 my-1"><span id="pm25-val">--</span> <span class="text-[10px] text-slate-400">µg/m³</span></div>
-                        <span id="pm25-badge" class="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded">--</span>
-                    </div>
-                    <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 text-center">
-                        <span class="text-xs font-semibold text-slate-500">PM10</span>
-                        <div class="text-xl font-bold text-slate-800 my-1"><span id="pm10-val">--</span> <span class="text-[10px] text-slate-400">µg/m³</span></div>
-                        <span id="pm10-badge" class="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded">--</span>
-                    </div>
-                    <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 text-center">
-                        <span class="text-xs font-semibold text-slate-500">NO₂</span>
-                        <div class="text-xl font-bold text-slate-800 my-1"><span id="no2-val">--</span> <span class="text-[10px] text-slate-400">µg/m³</span></div>
-                        <span id="no2-badge" class="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded">--</span>
-                    </div>
-                    <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 text-center">
-                        <span class="text-xs font-semibold text-slate-500">CO</span>
-                        <div class="text-xl font-bold text-slate-800 my-1"><span id="co-val">--</span> <span class="text-[10px] text-slate-400">mg/m³</span></div>
-                        <span id="co-badge" class="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded">--</span>
-                    </div>
-                    <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 text-center">
-                        <span class="text-xs font-semibold text-slate-500">O₃</span>
-                        <div class="text-xl font-bold text-slate-800 my-1"><span id="o3-val">--</span> <span class="text-[10px] text-slate-400">µg/m³</span></div>
-                        <span id="o3-badge" class="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded">--</span>
-                    </div>
-
-                    <!-- Weather Parameters Bottom Row -->
-                    <div class="col-span-2 md:col-span-5 bg-white p-3 rounded-xl shadow-sm border border-slate-200 flex justify-around items-center">
-                        <div class="flex items-center space-x-2">
-                            <i class="fa-solid fa-temperature-half text-blue-500 text-lg"></i>
-                            <div><span class="text-xs text-slate-400 block">Temperature</span><span id="card-temp" class="text-sm font-bold text-slate-700">--°C</span></div>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <i class="fa-solid fa-droplet text-blue-500 text-lg"></i>
-                            <div><span class="text-xs text-slate-400 block">Humidity</span><span id="card-humidity" class="text-sm font-bold text-slate-700">--%</span></div>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <i class="fa-solid fa-wind text-blue-500 text-lg"></i>
-                            <div><span class="text-xs text-slate-400 block">Wind Speed</span><span id="card-wind" class="text-sm font-bold text-slate-700">-- km/h</span></div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Prediction Section & Chart -->
-            <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <!-- Forecast Chart -->
-                <div class="lg:col-span-2 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-slate-800 text-sm">24-Hour PM2.5 Forecast</h3>
-                        <span class="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-100 font-medium">Live ML Model</span>
-                    </div>
-                    <div class="h-48">
-                        <canvas id="aqiChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Tomorrow's Prediction Card -->
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center space-x-2 text-purple-600 font-semibold text-xs mb-2">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i>
-                            <span>AI 24h Forecast</span>
-                        </div>
-                        <div class="flex items-baseline space-x-2">
-                            <span id="pred-aqi-val" class="text-4xl font-extrabold text-red-500">--</span>
-                            <span class="text-xs text-slate-400">AQI</span>
-                            <span id="pred-aqi-badge" class="bg-red-100 text-red-600 text-[10px] px-2 py-0.5 rounded ml-2">--</span>
-                        </div>
-                        <p id="pred-desc" class="text-xs text-slate-500 mt-2">Model estimation for upcoming hours.</p>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2 mt-4 text-xs bg-slate-50 p-2 rounded-lg">
-                        <div><span class="text-slate-400 block">Predicted PM2.5</span><span id="pred-pm25" class="font-bold text-slate-700">-- µg/m³</span></div>
-                        <div><span class="text-slate-400 block">Trend Status</span><span id="pred-status" class="font-bold text-slate-700">--</span></div>
-                    </div>
-
-                    <div class="mt-3 p-2.5 bg-amber-50 border border-amber-200 rounded-lg flex items-center space-x-2">
-                        <i class="fa-solid fa-triangle-exclamation text-amber-500"></i>
-                        <div id="pred-alert-text" class="text-[11px] text-amber-700">
-                            <strong>Air Quality Notice:</strong> Monitor air parameters regularly.
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Map & AI Insights -->
-            <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <h3 class="font-bold text-slate-800 text-sm mb-3">Live Map View</h3>
-                    <div id="map" class="h-52 rounded-lg border border-slate-200"></div>
-                </div>
-
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center space-x-2 text-blue-600 font-semibold text-sm mb-3">
-                            <i class="fa-solid fa-brain"></i>
-                            <span>AI Insights & Recommendations</span>
-                        </div>
-                        <ul id="ai-insights-list" class="space-y-2 text-xs text-slate-600">
-                            <li class="flex items-start space-x-2">
-                                <span class="bg-blue-100 text-blue-600 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5">1</span>
-                                <span>Fetching live backend diagnostics for your selected city...</span>
-                            </li>
-                        </ul>
-                    </div>
-
-                    <a href="/docs" target="_blank" class="mt-4 text-center w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-2 rounded-lg transition">
-                        View Raw API Docs <i class="fa-solid fa-arrow-right ml-1"></i>
-                    </a>
-                </div>
-            </section>
-
-        </main>
+<div class="lg:ml-72">
+  <header class="p-4 lg:p-6 pb-0">
+    <div class="card p-4 md:p-5 flex flex-wrap items-center justify-between gap-4">
+      <div class="min-w-0">
+        <p class="text-blue-600 font-medium flex items-center gap-1"><i data-lucide="map-pin" class="w-4 h-4"></i><span id="hCity">Loading…</span></p>
+        <h1 id="hTitle" class="text-2xl md:text-3xl font-bold"></h1>
+        <p id="hSub" class="text-slate-600"></p>
+      </div>
+      <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+        <form id="sf" class="relative flex-1 lg:w-72" role="search" autocomplete="off">
+          <label for="q" class="sr-only">Search a city</label>
+          <input id="q" type="search" placeholder="Search a city…" class="w-full rounded-xl border border-slate-200 px-4 py-2.5">
+          <div id="results" class="hidden absolute left-0 right-0 top-full mt-1 card shadow-lg z-40 max-h-64 overflow-auto"></div>
+        </form>
+        <div id="hW" class="rounded-xl bg-slate-50 px-4 py-2 text-sm text-slate-600"></div>
+        <div class="flex items-center gap-2"><span id="av" class="w-10 h-10 rounded-full bg-slate-800 text-white grid place-items-center font-bold text-sm"></span><b id="uname" class="hidden sm:block"></b></div>
+      </div>
     </div>
+  </header>
+  <main id="view" class="p-4 lg:p-6 space-y-5"></main>
+  <footer class="px-6 pb-8 text-sm text-slate-500">AirGuard supports SDG 3, 11 and 13. Predictions come from a machine-learning model and are estimates, not official health advisories.</footer>
+</div>
+<div id="toast" class="hidden fixed bottom-5 right-5 bg-slate-900 text-white rounded-xl px-4 py-3 z-50"></div>
 
-    <!-- Live Dynamic Script -->
-    <script>
-        let leafletMap = null;
-        let leafletMarker = null;
-        let chartInstance = null;
+<script>
+/* ================= Data & helpers ================= */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ls = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
+const sv = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+const CITIES = ['Lahore','Faisalabad','Karachi','Islamabad','Peshawar','Multan','Quetta'];
+const COORDS = {Lahore:[31.52,74.36],Faisalabad:[31.45,73.13],Karachi:[24.86,67.0],Islamabad:[33.68,73.05],Peshawar:[34.02,71.52],Multan:[30.16,71.47],Quetta:[30.18,66.98]};
+let CFG = Object.assign({name:'Ali Haider', city:'Faisalabad', unit:'C', thr:100}, ls('ag_cfg', {}));
+const S = {city: CFG.city, r:null, raw:null, loading:true, err:'', range:7};
+const cache = {}, charts = {};
+let mapObj;
 
-        // Init Map
-        function initMap(lat = 31.558, lon = 74.35071, city = 'Lahore') {
-            if (!leafletMap) {
-                leafletMap = L.map('map').setView([lat, lon], 10);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '© OpenStreetMap'
-                }).addTo(leafletMap);
-                leafletMarker = L.marker([lat, lon]).addTo(leafletMap).bindPopup(`${city} Monitoring Point`);
-            } else {
-                leafletMap.setView([lat, lon], 10);
-                leafletMarker.setLatLng([lat, lon]).setPopupContent(`${city} Monitoring Point`);
-            }
-        }
+const BANDS = [
+  {max:50,  name:'Good', c:'#22A06B', bg:'#DCFCE7'},
+  {max:100, name:'Moderate', c:'#D4A300', bg:'#FEF9C3'},
+  {max:150, name:'Unhealthy for sensitive groups', c:'#F28C28', bg:'#FFEDD5'},
+  {max:200, name:'Unhealthy', c:'#E5483D', bg:'#FEE2E2'},
+  {max:300, name:'Very unhealthy', c:'#8E44AD', bg:'#F3E8FF'},
+  {max:1e9, name:'Hazardous', c:'#7B1E3A', bg:'#FCE7F3'}];
+const ACT = [
+  {out:'Enjoy outdoor activities as usual.', mask:'No mask needed.', home:'Open windows to bring in fresh air.'},
+  {out:'Fine for most people. If you have asthma, take it easier on long outdoor exercise.', mask:'A mask is optional.', home:'Ventilate in the early morning or late evening.'},
+  {out:'Children, older adults and people with lung or heart conditions should limit long time outdoors.', mask:'Sensitive groups should wear an N95/KN95 mask outside.', home:'Keep windows closed during peak traffic hours.'},
+  {out:'Everyone should reduce outdoor exercise and avoid busy roads.', mask:'Wear an N95/KN95 mask if you must go out.', home:'Keep windows closed and use an air purifier if you have one.'},
+  {out:'Stay indoors where possible. Move workouts inside.', mask:'Wear an N95/KN95 mask for any outdoor trip.', home:'Seal gaps, run a purifier and avoid cooking with smoke.'},
+  {out:'Avoid going outside. Postpone outdoor work and school activities.', mask:'An N95/KN95 mask is essential outdoors.', home:'Stay in a closed room with a purifier. Seek medical help if breathing is difficult.'}];
+const bIdx = a => BANDS.findIndex(b => a <= b.max);
+function aqiFromPm25(c){
+  const T=[[0,9,0,50],[9.1,35.4,51,100],[35.5,55.4,101,150],[55.5,125.4,151,200],[125.5,225.4,201,300],[225.5,325.4,301,500]];
+  c = Math.floor(c*10)/10;
+  for (const t of T) if (c <= t[1]) return Math.round((t[3]-t[2])/(t[1]-t[0])*(c-t[0])+t[2]);
+  return 500;
+}
+const POL = {
+  pm25:{n:'PM2.5', full:'Fine particles (PM2.5)', u:'µg/m³', lim:[12,35.4,55.4],
+    src:'Vehicle exhaust, brick kilns, burning of crop residue and rubbish, factory smoke and diesel generators.',
+    hp:'Small enough to reach deep into the lungs and bloodstream. Triggers asthma, heart and lung disease.',
+    fix:'Stop open burning, use cleaner fuel, keep vehicles tuned and wear an N95 mask outside.'},
+  pm10:{n:'PM10', full:'Dust particles (PM10)', u:'µg/m³', lim:[54,154,254],
+    src:'Road and construction dust, unpaved roads, dust storms, brick kilns and uncovered building material.',
+    hp:'Irritates eyes, nose and throat. Worsens cough and asthma.',
+    fix:'Water roads and building sites, cover sand and cement, plant trees and grass.'},
+  no2:{n:'NO₂', full:'Nitrogen dioxide (NO₂)', u:'µg/m³', lim:[40,100,200],
+    src:'Diesel and petrol engines, power plants and factories. Highest near busy roads and junctions.',
+    hp:'Inflames the airways. Children and people with asthma are affected first.',
+    fix:'Use public transport or carpool, avoid idling engines and service vehicles regularly.'},
+  co:{n:'CO', full:'Carbon monoxide (CO)', u:'mg/m³', lim:[4,10,15],
+    src:'Incomplete burning of fuel: petrol cars, motorcycles, generators, wood and coal fires, burning waste.',
+    hp:'Reduces the oxygen your blood can carry. Causes headache, dizziness and tiredness.',
+    fix:'Keep generators outdoors, ventilate kitchens and keep engines in good tune.'},
+  so2:{n:'SO₂', full:'Sulphur dioxide (SO₂)', u:'µg/m³', lim:[40,100,350],
+    src:'Burning coal and heavy oil in industry, power stations and brick kilns.',
+    hp:'Causes wheezing, coughing and shortness of breath.',
+    fix:'Switch to cleaner fuels and fit filters on chimneys.'},
+  o3:{n:'O₃', full:'Ground-level ozone (O₃)', u:'µg/m³', lim:[100,160,240],
+    src:'Not released directly. It forms when sunlight reacts with vehicle and industrial gases, so it peaks on hot afternoons.',
+    hp:'Causes chest tightness, coughing and reduced lung function.',
+    fix:'Cut traffic emissions and avoid outdoor exercise in the afternoon.'}};
+const LVN = ['Good','Moderate','High','Very high'], LVC = ['#22A06B','#D4A300','#E5483D','#8E44AD'], LVB = ['#DCFCE7','#FEF9C3','#FEE2E2','#F3E8FF'];
+const lvl = (k, v) => POL[k].lim.filter(l => v > l).length;
+const badge = (txt, c, bg) => `<span class="badge" style="color:${c};background:${bg}">${txt}</span>`;
 
-        // Init Chart
-        function updateChart(labels, data) {
-            const ctx = document.getElementById('aqiChart').getContext('2d');
-            if (chartInstance) {
-                chartInstance.destroy();
-            }
-            chartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Predicted PM2.5 (µg/m³)',
-                        data: data,
-                        borderColor: '#2563eb',
-                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                        fill: true,
-                        tension: 0.3
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: true } },
-                    scales: { y: { beginAtZero: true } }
-                }
-            });
-        }
+function mainPol(r){
+  let best = null;
+  for (const k in POL) if (r[k] != null){ const ratio = r[k] / POL[k].lim[1]; if (!best || ratio > best.ratio) best = {k, p:POL[k], v:r[k], lv:lvl(k, r[k]), ratio}; }
+  return best;
+}
 
-        // AQI Category Helper
-        function getAQIInfo(pm25) {
-            if (pm25 <= 12) return { text: 'Good', border: 'border-emerald-500', bg: 'bg-emerald-100', color: 'text-emerald-600', advice: 'Air quality is satisfactory. Enjoy outdoor activities.' };
-            if (pm25 <= 35.4) return { text: 'Moderate', border: 'border-yellow-500', bg: 'bg-yellow-100', color: 'text-yellow-600', advice: 'Air quality is acceptable. Sensitive individuals should take care.' };
-            if (pm25 <= 55.4) return { text: 'Unhealthy (Sensitive)', border: 'border-amber-500', bg: 'bg-amber-100', color: 'text-amber-600', advice: 'Sensitive groups may experience health effects.' };
-            if (pm25 <= 150.4) return { text: 'Unhealthy', border: 'border-red-500', bg: 'bg-red-100', color: 'text-red-600', advice: 'Everyone may begin to experience health effects. Avoid prolonged outdoor exertion.' };
-            return { text: 'Hazardous', border: 'border-purple-600', bg: 'bg-purple-100', color: 'text-purple-600', advice: 'Health alert: Serious risk for all populations.' };
-        }
+/* ---- tolerant reader for the API response ---- */
+function numOf(v){
+  if (typeof v === 'number' && isFinite(v)) return v;
+  if (typeof v === 'string' && v.trim() !== '' && isFinite(+v)) return +v;
+  if (v && typeof v === 'object') for (const k in v){ const r = numOf(v[k]); if (r !== undefined) return r; }
+}
+function deep(o, names, d = 0){
+  if (!o || typeof o !== 'object' || d > 4) return;
+  for (const n of names) if (n in o){ const r = numOf(o[n]); if (r !== undefined) return r; }
+  for (const k in o){ const r = deep(o[k], names, d + 1); if (r !== undefined) return r; }
+}
+function findKey(o, re, d = 0){
+  if (!o || typeof o !== 'object' || d > 3) return;
+  for (const k in o) if (re.test(k)) return o[k];
+  for (const k in o){ const r = findKey(o[k], re, d + 1); if (r !== undefined) return r; }
+}
+function strip(o){ if (!o || typeof o !== 'object') return o; const c = Array.isArray(o) ? [] : {}; for (const k in o) if (!/predict|forecast/i.test(k)) c[k] = strip(o[k]); return c; }
+function normalize(d, fb){
+  const cur = strip(d), pv = findKey(d, /predict|forecast/i);
+  const r = {
+    city: (typeof d.city === 'string' && d.city) || (typeof d.place?.name === 'string' && d.place.name) || (typeof d.name === 'string' && d.name) || fb,
+    pm25: deep(cur, ['current_pm25','pm25','pm2_5','pm_25']), pm10: deep(cur, ['pm10','pm_10']),
+    no2: deep(cur, ['no2','nitrogen_dioxide']), so2: deep(cur, ['so2','sulphur_dioxide','sulfur_dioxide']),
+    o3: deep(cur, ['o3','ozone']), co: deep(cur, ['co','carbon_monoxide']),
+    aqi: deep(cur, ['aqi','us_aqi']),
+    temp: deep(cur, ['temperature','temp','temperature_2m']), hum: deep(cur, ['humidity','relative_humidity','relative_humidity_2m']),
+    wind: deep(cur, ['wind_speed','windspeed','wind_speed_10m']), lat: deep(cur, ['latitude','lat']), lon: deep(cur, ['longitude','lon','lng'])};
+  if (r.wind != null) r.wind = r.wind * 3.6;                 // API gives m/s
+  r.age = deep(d, ['data_age_hours']);
+  if (r.co > 50) r.co = r.co / 1000;                       // µg/m³ → mg/m³
+  r.pPm25 = pv && typeof pv === 'object' ? deep(pv, ['pm25','pm2_5','predicted_pm25','pm25_24h']) : numOf(pv);
+  if (r.pPm25 === undefined) r.pPm25 = deep(d, ['predicted_pm25','predicted_pm25_24h','pm25_24h','forecast_pm25']);
+  r.pPm10 = pv && typeof pv === 'object' ? deep(pv, ['pm10','predicted_pm10']) : undefined;
+  if (r.aqi == null && r.pm25 != null) r.aqi = aqiFromPm25(r.pm25);
+  r.pAqi = r.pPm25 != null ? aqiFromPm25(r.pPm25) : undefined;
+  if (r.lat == null || r.lon == null){ const c = COORDS[fb]; if (c){ r.lat = c[0]; r.lon = c[1]; } }
+  if (r.aqi != null) r.aqi = Math.round(r.aqi);
+  return r;
+}
+function applyForecast(r, f){
+  r.pPm25 = numOf(f.predicted_pm25);
+  r.pAqi = r.pPm25 != null ? aqiFromPm25(r.pPm25) : undefined;
+  r.err = numOf(f.typical_error);
+  r.trend = typeof f.trend === 'string' ? f.trend : undefined;
+  r.model = typeof f.model_name === 'string' ? f.model_name : undefined;
+  r.note = typeof f.note === 'string' ? f.note : undefined;
+  if (r.pm25 == null && numOf(f.current_pm25) != null){ r.pm25 = numOf(f.current_pm25); if (r.aqi == null) r.aqi = aqiFromPm25(r.pm25); }
+}
+async function fetchCity(name, light = false){   // light = skip the forecast (used by the map)
+  const hit = cache[name] || (light && cache[name + '|l']);
+  if (hit && Date.now() - hit.t < 3e5) return hit;
+  const q = encodeURIComponent(name);
+  const [res, fres] = await Promise.all([fetch(`/api/air-quality/current?city=${q}`), light ? null : fetch(`/api/forecast?city=${q}`).catch(() => null)]);
+  if (!res.ok) throw new Error(`The server answered ${res.status}.`);
+  const raw = await res.json(), r = normalize(raw, name);
+  if (fres && fres.ok){ try { applyForecast(r, await fres.json()); } catch {} }
+  return cache[light ? name + '|l' : name] = {t:Date.now(), r, raw};
+}
 
-        // Fetch Air Quality Data
-        async function fetchAirData(cityName) {
-            try {
-                // 1. Fetch Geocoding / Search
-                const searchRes = await fetch(`/api/places/search?q=${encodeURIComponent(cityName)}`);
-                const places = await searchRes.json();
-                
-                let lat = 31.558, lon = 74.35071, displayName = cityName;
-                if (places && places.length > 0) {
-                    lat = places[0].latitude;
-                    lon = places[0].longitude;
-                    displayName = places[0].display_name || places[0].name;
-                }
+/* ---- history kept in this browser ---- */
+function logHist(r){
+  if (r.aqi == null) return;
+  const h = ls('ag_hist', []), last = h.filter(x => x.city === r.city).pop();
+  if (last && Date.now() - last.t < 18e5) return;
+  h.push({t:Date.now(), city:r.city, aqi:r.aqi, pm25:r.pm25 ?? null, pAqi:r.pAqi ?? null});
+  sv('ag_hist', h.slice(-300));
+}
+const HIST = {};
+const histFor = (city, days) => HIST[city + ':' + days]?.length ? HIST[city + ':' + days] : ls('ag_hist', []).filter(x => x.city === city && x.t > Date.now() - days * 864e5);
+async function fetchHist(city, days){
+  try {
+    const res = await fetch(`/api/history?city=${encodeURIComponent(city)}&days=${days}`); if (!res.ok) return;
+    const d = await res.json();
+    HIST[city + ':' + days] = (d.points || []).filter(p => p.aqi != null).map(p => ({t:new Date(p.date).getTime(), aqi:p.aqi, pm25:p.pm25, db:true}));
+    if (S.city === city && /#\/(dashboard|history)/.test(location.hash)) route();
+  } catch {}
+}
+function setRange(n){ S.range = n; route(); fetchHist(S.city, n); }
 
-                document.getElementById('current-city-label').innerText = displayName;
-                initMap(lat, lon, displayName);
+/* ---- alerts ---- */
+function alertsFor(r){
+  const a = []; if (!r || r.aqi == null) return a;
+  const b = bIdx(r.aqi);
+  if (r.aqi >= CFG.thr) a.push({l:'high', t:`Air is ${BANDS[b].name.toLowerCase()} (AQI ${r.aqi})`, x:ACT[b].out + ' ' + ACT[b].mask});
+  if (r.pAqi != null && r.pAqi >= CFG.thr && r.pAqi > r.aqi + 10) a.push({l:'med', t:`Pollution may rise tomorrow (AQI ${r.pAqi})`, x:'Plan outdoor activities and travel with this in mind. ' + ACT[bIdx(r.pAqi)].mask});
+  const m = mainPol(r);
+  if (m && m.lv >= 2) a.push({l:'med', t:`${m.p.full} is ${LVN[m.lv].toLowerCase()}`, x:m.p.hp});
+  if (r.wind != null && r.wind < 6 && r.aqi > 50) a.push({l:'info', t:'Calm wind is trapping pollution', x:'Low wind lets pollutants build up near the ground, so levels may stay high until the wind picks up.'});
+  return a;
+}
 
-                // 2. Fetch Air Quality Data from Backend
-                const aqRes = await fetch(`/api/air-quality/current?city=${encodeURIComponent(cityName)}`);
-                if (!aqRes.ok) throw new Error('API request failed');
-                const aqData = await aqRes.json();
+/* ================= Loading & header ================= */
+async function loadCity(name){
+  S.city = name; S.err = ''; S.loading = true; S.r = null; route();
+  try { const c = await fetchCity(name); S.r = c.r; S.raw = c.raw; logHist(c.r); fetchHist(name, 7); if (S.range !== 7) fetchHist(name, S.range); }
+  catch (e) { S.err = `Could not load air quality for ${name}. ${e.message} Try another city or retry.`; }
+  S.loading = false; route();
+}
+const fT = v => v == null ? '–' : CFG.unit === 'F' ? (v * 9 / 5 + 32).toFixed(0) + '°F' : v.toFixed(0) + '°C';
+const fN = (v, dp = 0) => v == null ? '–' : v.toFixed(dp);
+function header(){
+  $('hCity').textContent = S.city + ', Pakistan';
+  const r = S.r;
+  $('hW').innerHTML = r ? `<b class="text-slate-900">${fT(r.temp)}</b> · Humidity ${fN(r.hum)}% · Wind ${fN(r.wind)} km/h` : 'Weather loading…';
+  $('av').textContent = (CFG.name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  $('uname').textContent = CFG.name;
+  const n = alertsFor(r).filter(a => a.l !== 'info').length, el = $('abadge');
+  if (el){ el.textContent = n; el.classList.toggle('hidden', !n); }
+}
 
-                // Extract values (supporting various backend schema returns)
-                const currentPm25 = aqData.current?.pm2_5 || aqData.pm25 || aqData.pm2_5 || 38.5;
-                const currentPm10 = aqData.current?.pm10 || aqData.pm10 || (currentPm25 * 1.5).toFixed(1);
-                const currentNo2 = aqData.current?.nitrogen_dioxide || aqData.no2 || 24.2;
-                const currentCo = aqData.current?.carbon_monoxide || aqData.co || 0.6;
-                const currentO3 = aqData.current?.ozone || aqData.o3 || 45.0;
+/* ================= Pages ================= */
+const PAGES = {
+  home:['AirGuard','Clean air, healthy future.','home','Home'],
+  dashboard:['AI Air Pollution Prediction System','Monitor today\'s air. Predict tomorrow\'s air.','layout-dashboard','Dashboard'],
+  prediction:['Tomorrow\'s Prediction','What the model expects for the next 24 hours.','line-chart','Prediction'],
+  map:['Air Quality Map','Live air quality across major Pakistani cities.','map-pin','Map'],
+  alerts:['Alerts','Warnings based on current and predicted air quality.','bell','Alerts'],
+  history:['History','Daily air quality for your city.','history','History'],
+  insights:['Causes & Tips','Why the air is polluted and what you can do about it.','lightbulb','Causes & Tips'],
+  settings:['Settings','Personalise AirGuard.','settings','Settings']};
 
-                const temp = aqData.current?.temperature_2m || aqData.temperature || 28;
-                const humidity = aqData.current?.relative_humidity_2m || aqData.humidity || 55;
-                const wind = aqData.current?.wind_speed_10m || aqData.wind_speed || 10;
+function gate(){
+  if (S.r) return '';
+  if (S.err) return `<div class="card p-8 text-center"><p class="text-red-600 font-semibold">${esc(S.err)}</p><button class="btn btn-p mt-4" onclick="loadCity(S.city)">Retry</button></div>`;
+  return `<div class="card p-10 text-center text-slate-500">Loading live air quality for ${esc(S.city)}…</div>`;
+}
+const ring = (aqi, size = 180) => {
+  const b = BANDS[bIdx(aqi)], C = 2 * Math.PI * 80, d = Math.min(aqi, 300) / 300 * C;
+  return `<div class="relative mx-auto" style="width:${size}px;height:${size}px"><svg viewBox="0 0 180 180" width="${size}" height="${size}" style="transform:rotate(-90deg)"><circle cx="90" cy="90" r="80" fill="none" stroke="#E2E8F0" stroke-width="12"/><circle cx="90" cy="90" r="80" fill="none" stroke="${b.c}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${d} ${C}"/></svg><div class="absolute inset-0 grid place-content-center text-center"><span class="text-slate-500 text-sm">AQI</span><b class="text-5xl" style="line-height:1">${aqi}</b></div></div>`;
+};
+const histChart = (id, days) => histFor(S.city, days).length > 1 ? `<div style="height:260px"><canvas id="${id}"></canvas></div>` : `<div class="grid place-content-center text-center text-slate-500 p-8" style="min-height:200px"><p>Not enough readings yet.</p><p class="text-sm">AirGuard saves a reading in this browser each time you check ${esc(S.city)}. Come back later to see the trend.</p></div>`;
+function drawHist(id, days){
+  const h = histFor(S.city, days); if (h.length < 2 || !$(id)) return;
+  mk(id, {type:'line', data:{labels:h.map(x => new Date(x.t).toLocaleString('en-GB', x.db ? {day:'numeric', month:'short'} : {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})),
+    datasets:[{label:'AQI', data:h.map(x => x.aqi), borderColor:'#E5483D', backgroundColor:'rgba(229,72,61,.1)', fill:true, tension:.35}]},
+    options:{maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, title:{display:true, text:'AQI'}}}}});
+}
+function mk(id, cfg){ charts[id]?.destroy(); const el = $(id); if (el) charts[id] = new Chart(el, cfg); }
 
-                // Update UI Weather
-                document.getElementById('header-temp').innerText = `${temp}°C`;
-                document.getElementById('header-humidity').innerText = `${humidity}%`;
-                document.getElementById('header-wind').innerText = `${wind} km/h`;
-                document.getElementById('card-temp').innerText = `${temp}°C`;
-                document.getElementById('card-humidity').innerText = `${humidity}%`;
-                document.getElementById('card-wind').innerText = `${wind} km/h`;
+function pageHome(){
+  const r = S.r, b = r && r.aqi != null ? BANDS[bIdx(r.aqi)] : null;
+  const feats = [['layout-dashboard','Live dashboard','Current AQI, pollutants and weather for your city.','dashboard'],['line-chart','24-hour prediction','A machine-learning forecast of tomorrow\'s PM2.5.','prediction'],['lightbulb','Causes & tips','Which gases and particles are polluting, and why.','insights'],['bell','Smart alerts','Warnings when air turns unhealthy.','alerts']];
+  return {html:`
+  <section class="rounded-2xl p-6 md:p-10 text-white grid md:grid-cols-[1.4fr_1fr] gap-8 items-center" style="background:linear-gradient(135deg,#0B1437,#1D4ED8)">
+    <div><h2 class="text-3xl md:text-5xl font-extrabold leading-tight">Know your air.<br>Plan tomorrow.</h2>
+    <p class="mt-4 text-blue-100 max-w-xl text-lg">AirGuard shows live air quality for Pakistani cities, predicts tomorrow's PM2.5 and explains what is causing the pollution and how to stay safe.</p>
+    <div class="mt-6 flex flex-wrap gap-3"><a href="#/dashboard" class="btn bg-white text-blue-700">Open dashboard</a><a href="#/insights" class="btn border border-white/50 text-white">Why is the air polluted?</a></div></div>
+    <div class="bg-white text-slate-900 rounded-2xl p-5 text-center">${r && r.aqi != null ? `<p class="text-slate-500 mb-2">Right now in <b>${esc(S.city)}</b></p>${ring(r.aqi, 150)}<div class="mt-3">${badge(b.name, b.c, b.bg)}</div>` : `<p class="text-slate-500 py-10">${S.err ? esc(S.err) : 'Loading live data…'}</p>`}</div>
+  </section>
+  <section class="grid sm:grid-cols-2 xl:grid-cols-4 gap-5">${feats.map(f => `<a href="#/${f[3]}" class="card p-5 hover:border-blue-400"><span class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 grid place-items-center mb-3"><i data-lucide="${f[0]}"></i></span><b>${f[1]}</b><p class="text-slate-600 mt-1">${f[2]}</p></a>`).join('')}</section>
+  <section class="card p-6"><h2 class="text-xl font-bold mb-4">How it works</h2><ol class="grid md:grid-cols-3 gap-5">
+    <li><b>1. Collect</b><p class="text-slate-600">Live weather and pollutant readings are fetched for your city.</p></li>
+    <li><b>2. Predict</b><p class="text-slate-600">A trained model estimates the next 24 hours of PM2.5.</p></li>
+    <li><b>3. Advise</b><p class="text-slate-600">You get the likely causes, health effects and clear actions.</p></li></ol></section>`};
+}
 
-                // Update Pollutants
-                document.getElementById('pm25-val').innerText = currentPm25;
-                document.getElementById('pm10-val').innerText = currentPm10;
-                document.getElementById('no2-val').innerText = currentNo2;
-                document.getElementById('co-val').innerText = currentCo;
-                document.getElementById('o3-val').innerText = currentO3;
+function pageDashboard(){
+  const g = gate(); if (g) return {html:g};
+  const r = S.r, b = r.aqi != null ? BANDS[bIdx(r.aqi)] : BANDS[0], m = mainPol(r), al = alertsFor(r).filter(a => a.l !== 'info');
+  const pb = r.pAqi != null ? BANDS[bIdx(r.pAqi)] : null;
+  const cards = ['pm25','pm10','no2','co','o3'].map(k => { const v = r[k], p = POL[k], L = v != null ? lvl(k, v) : null;
+    return `<div class="card p-4 text-center"><p class="text-slate-600">${p.n}</p><p class="mt-1"><b class="text-2xl">${fN(v, k === 'co' ? 2 : 0)}</b> <span class="text-xs text-slate-500">${p.u}</span></p><div class="mt-2">${L == null ? badge('No data','#64748B','#F1F5F9') : badge(LVN[L], LVC[L], LVB[L])}</div></div>`; }).join('');
+  return {html:`
+  <div class="grid xl:grid-cols-[320px_1fr] gap-5">
+    <div class="card p-6 text-center">${r.aqi != null ? ring(r.aqi) : '<p class="py-16 text-slate-500">No AQI data</p>'}
+      <div class="mt-4">${badge(b.name, b.c, b.bg)}</div><p class="mt-3 text-slate-600 text-sm">${ACT[bIdx(r.aqi ?? 0)].out}</p>${r.age != null ? `<p class="mt-2 text-xs text-slate-400">Updated ${r.age < 1 ? 'less than an hour' : r.age.toFixed(0) + ' hours'} ago</p>` : ''}</div>
+    <div class="grid gap-5"><div class="grid grid-cols-2 md:grid-cols-5 gap-4">${cards}</div>
+      <div class="card p-5 grid grid-cols-3 text-center gap-2">
+        <div><i data-lucide="thermometer" class="mx-auto text-blue-600"></i><p class="text-slate-500 text-sm">Temperature</p><b>${fT(r.temp)}</b></div>
+        <div><i data-lucide="droplets" class="mx-auto text-blue-600"></i><p class="text-slate-500 text-sm">Humidity</p><b>${fN(r.hum)}%</b></div>
+        <div><i data-lucide="wind" class="mx-auto text-blue-600"></i><p class="text-slate-500 text-sm">Wind speed</p><b>${fN(r.wind)} km/h</b></div></div></div></div>
+  <div class="grid xl:grid-cols-[1fr_380px] gap-5">
+    <div class="card p-5"><div class="flex items-center justify-between mb-3"><h2 class="text-lg font-bold">AQI history – ${esc(S.city)}</h2><a href="#/history" class="text-blue-600 font-medium">Full history</a></div>${histChart('c1', 7)}</div>
+    <div class="card p-5"><p class="text-purple-600 font-semibold flex items-center gap-2"><i data-lucide="sparkles" class="w-4 h-4"></i>Tomorrow's prediction</p>
+      ${r.pAqi != null ? `<p class="mt-3"><b class="text-5xl" style="color:${pb.c}">${r.pAqi}</b> <span class="text-slate-500">AQI</span> ${badge(pb.name, pb.c, pb.bg)}</p>
+      <p class="mt-3 text-slate-600">${r.pAqi > (r.aqi ?? 0) + 10 ? 'Pollution may increase tomorrow. Take necessary precautions.' : r.pAqi < (r.aqi ?? 0) - 10 ? 'Air is expected to improve tomorrow.' : 'Air quality should stay similar tomorrow.'}</p>
+      <div class="mt-4 rounded-xl bg-slate-50 p-3 grid grid-cols-2 text-sm"><div><span class="text-slate-500">Predicted PM2.5</span><br><b>${fN(r.pPm25)} µg/m³</b></div><div><span class="text-slate-500">Typical error</span><br><b>${r.err != null ? '±' + fN(r.err, 1) + ' µg/m³' : 'Not available'}</b></div></div>` : '<p class="mt-3 text-slate-500">No prediction returned for this city.</p>'}
+      <a href="#/prediction" class="btn btn-s inline-block mt-4">See details</a></div></div>
+  ${m ? `<section class="card p-5"><div class="flex flex-wrap items-center gap-3 mb-2"><h2 class="text-lg font-bold">Why is the air like this?</h2>${badge(m.p.n + ' · ' + LVN[m.lv], LVC[m.lv], LVB[m.lv])}</div>
+    <p><b>${m.p.full}</b> is the biggest contributor right now (${fN(m.v, m.k === 'co' ? 2 : 0)} ${m.p.u}).</p>
+    <p class="text-slate-600 mt-2"><b class="text-slate-800">Comes from:</b> ${m.p.src}</p><p class="text-slate-600 mt-1"><b class="text-slate-800">Health effect:</b> ${m.p.hp}</p>
+    <a href="#/insights" class="btn btn-p inline-block mt-4">See all causes and precautions</a></section>` : ''}
+  ${al.length ? `<div class="rounded-xl border border-red-200 bg-red-50 p-4 flex gap-3"><i data-lucide="alert-triangle" class="text-red-600 shrink-0"></i><p><b class="text-red-700">Air Quality Alert:</b> ${esc(al[0].t)}. <a href="#/alerts" class="underline">All alerts</a></p></div>` : ''}`,
+    after(){ drawHist('c1', 7); }};
+}
 
-                // Calculate & Set AQI Gauge
-                const calcAQI = Math.round(currentPm25 * 3.2); // Estimated AQI scale
-                document.getElementById('aqi-value').innerText = calcAQI;
+function pagePrediction(){
+  const g = gate(); if (g) return {html:g};
+  const r = S.r;
+  if (r.pPm25 == null) return {html:'<div class="card p-8 text-center text-slate-600">The server did not return a 24-hour prediction for this city. Open the dashboard\'s raw data in the browser console or try another city.</div>'};
+  const b = BANDS[bIdx(r.pAqi)], diff = r.pPm25 - (r.pm25 ?? r.pPm25), pct = r.pm25 ? Math.round(diff / r.pm25 * 100) : 0, a = ACT[bIdx(r.pAqi)];
+  return {html:`
+  <div class="grid lg:grid-cols-[340px_1fr] gap-5">
+    <div class="card p-6 text-center"><p class="text-slate-500 mb-3">Expected tomorrow in ${esc(S.city)}</p>${ring(r.pAqi)}<div class="mt-4">${badge(b.name, b.c, b.bg)}</div>
+      <p class="mt-3 text-slate-600">PM2.5: <b>${fN(r.pPm25)} µg/m³</b>${r.pm25 != null ? ` (${pct >= 0 ? '+' : ''}${pct}% vs now)` : ''}</p>${r.err != null ? `<p class="text-sm text-slate-500 mt-1">Typical model error: ±${fN(r.err, 1)} µg/m³</p>` : ''}</div>
+    <div class="card p-5"><h2 class="text-lg font-bold mb-3">Now vs next 24 hours</h2><div style="height:280px"><canvas id="c2"></canvas></div></div></div>
+  <section class="card p-5"><h2 class="text-lg font-bold mb-3">How to prepare for tomorrow</h2><div class="grid md:grid-cols-3 gap-4">
+    <div class="rounded-xl bg-slate-50 p-4"><b>Outdoors</b><p class="text-slate-600 mt-1">${a.out}</p></div>
+    <div class="rounded-xl bg-slate-50 p-4"><b>Masks</b><p class="text-slate-600 mt-1">${a.mask}</p></div>
+    <div class="rounded-xl bg-slate-50 p-4"><b>At home</b><p class="text-slate-600 mt-1">${a.home}</p></div></div>
+    <p class="text-sm text-slate-500 mt-4">${r.trend ? 'Trend: <b>' + esc(r.trend) + '</b>. ' : ''}${r.note ? esc(r.note) + ' ' : ''}${r.model ? 'Model: ' + esc(r.model) + '. ' : ''}Forecasts are estimates, not official advisories.</p></section>`,
+    after(){ const rows = [['PM2.5', r.pm25, r.pPm25]]; if (r.pPm10 != null) rows.push(['PM10', r.pm10, r.pPm10]);
+      mk('c2', {type:'bar', data:{labels:rows.map(x => x[0]), datasets:[{label:'Now', data:rows.map(x => x[1] ?? 0), backgroundColor:'#94A3B8', borderRadius:8}, {label:'Tomorrow', data:rows.map(x => x[2]), backgroundColor:b.c, borderRadius:8}]},
+        options:{maintainAspectRatio:false, scales:{y:{beginAtZero:true, title:{display:true, text:'µg/m³'}}}}}); }};
+}
 
-                const aqiInfo = getAQIInfo(currentPm25);
-                const ring = document.getElementById('aqi-ring');
-                ring.className = `w-full h-full rounded-full border-8 ${aqiInfo.border} flex flex-col items-center justify-center transition-colors`;
-                
-                const badge = document.getElementById('aqi-status-badge');
-                badge.innerText = aqiInfo.text;
-                badge.className = `mt-3 px-3 py-1 ${aqiInfo.bg} ${aqiInfo.color} rounded-full text-xs font-semibold`;
-                document.getElementById('aqi-health-advice').innerText = aqiInfo.advice;
+function pageMap(){
+  return {html:`<div class="card p-4"><div id="bigmap" style="height:520px;border-radius:12px"></div></div>
+  <div class="card p-4 flex flex-wrap gap-4 text-sm">${BANDS.map(b => `<span class="flex items-center gap-2"><i style="background:${b.c};width:14px;height:14px;border-radius:50%;display:inline-block"></i>${b.name}</span>`).join('')}</div>
+  <p id="mapNote" class="text-slate-500 text-sm">Loading cities…</p>`,
+    after(){
+      mapObj?.remove(); mapObj = L.map('bigmap', {scrollWheelZoom:false}).setView([30.4, 69.3], 5);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:18, attribution:'© OpenStreetMap contributors'}).addTo(mapObj);
+      let done = 0;
+      CITIES.forEach(async c => { try { const {r} = await fetchCity(c, true); const co = COORDS[c] || [r.lat, r.lon], b = BANDS[bIdx(r.aqi ?? 0)];
+          if (!$('bigmap')) return;
+          L.circleMarker(co, {radius:16, color:'#0F172A', weight:2, fillColor:b.c, fillOpacity:.85}).addTo(mapObj)
+            .bindPopup(`<b>${c}</b><br>AQI ${r.aqi ?? '–'} · ${b.name}<br>PM2.5 ${fN(r.pm25)} µg/m³<br><a href="#/dashboard" onclick="loadCity('${c}')">Open dashboard</a>`);
+          if (!$('bigmap')) return;
+        } catch {} finally { done++; const n = $('mapNote'); if (n) n.textContent = done < CITIES.length ? `Loaded ${done} of ${CITIES.length} cities…` : 'Click a marker for details.'; } });
+    }};
+}
 
-                // Forecast & Prediction
-                const forecastHours = ['+1h', '+4h', '+8h', '+12h', '+16h', '+20h', '+24h'];
-                const forecastValues = aqData.forecast || [
-                    currentPm25, 
-                    (currentPm25 * 1.05).toFixed(1), 
-                    (currentPm25 * 1.1).toFixed(1), 
-                    (currentPm25 * 0.95).toFixed(1), 
-                    (currentPm25 * 1.15).toFixed(1), 
-                    (currentPm25 * 1.2).toFixed(1), 
-                    (currentPm25 * 1.18).toFixed(1)
-                ];
+function pageAlerts(){
+  const g = gate(); if (g) return {html:g};
+  const al = alertsFor(S.r), col = {high:['#E5483D','#FEF2F2','alert-triangle'], med:['#F28C28','#FFF7ED','alert-circle'], info:['#2563EB','#EFF6FF','info']};
+  return {html: al.length ? `<p class="text-slate-600">Alerts for <b>${esc(S.city)}</b> (your threshold: AQI ${CFG.thr}). Change it in <a class="text-blue-600 underline" href="#/settings">Settings</a>.</p>` + al.map(a => `<div class="card p-4 flex gap-3" style="border-color:${col[a.l][0]};background:${col[a.l][1]}"><i data-lucide="${col[a.l][2]}" style="color:${col[a.l][0]}" class="shrink-0"></i><div><b>${esc(a.t)}</b><p class="text-slate-700 mt-1">${esc(a.x)}</p></div></div>`).join('')
+    : `<div class="card p-10 text-center"><i data-lucide="check-circle" class="mx-auto text-emerald-500 w-10 h-10"></i><b class="block mt-3 text-lg">No active alerts for ${esc(S.city)}</b><p class="text-slate-600">Air quality is below your alert threshold of AQI ${CFG.thr}.</p></div>`};
+}
 
-                updateChart(forecastHours, forecastValues);
+function pageHistory(){
+  const h = histFor(S.city, S.range).slice().reverse();
+  return {html:`<div class="card p-5"><div class="flex flex-wrap items-center justify-between gap-3 mb-3"><h2 class="text-lg font-bold">AQI history – ${esc(S.city)}</h2>
+    <div class="flex gap-2"><button class="btn btn-s ${S.range === 7 ? 'on' : ''}" onclick="setRange(7)">7 Days</button><button class="btn btn-s ${S.range === 30 ? 'on' : ''}" onclick="setRange(30)">30 Days</button></div></div>${histChart('c3', S.range)}</div>
+  <div class="card p-5 overflow-x-auto"><h2 class="text-lg font-bold mb-3">Recorded readings</h2>${h.length ? `<table class="w-full text-left"><thead class="text-slate-500 text-sm"><tr><th class="py-2">Date and time</th><th>AQI</th><th>Level</th><th>PM2.5</th></tr></thead><tbody>${h.map(x => { const b = BANDS[bIdx(x.aqi)]; return `<tr class="border-t border-slate-100"><td class="py-2">${new Date(x.t).toLocaleString('en-GB', x.db ? {day:'numeric', month:'short', year:'numeric'} : {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})}</td><td><b>${x.aqi}</b></td><td>${badge(b.name, b.c, b.bg)}</td><td>${fN(x.pm25)} µg/m³</td></tr>`; }).join('')}</tbody></table>` : '<p class="text-slate-500">Nothing recorded for this city yet.</p>'}
+    <p class="text-sm text-slate-500 mt-4">${h[0]?.db ? 'Daily averages from the AirGuard database. AQI is calculated from the daily PM2.5 average.' : 'Showing readings saved in this browser (the database returned no history for this city). You can clear them in Settings.'}</p></div>`, after(){ drawHist('c3', S.range); }};
+}
 
-                const predPm25 = forecastValues[forecastValues.length - 1];
-                const predAQI = Math.round(predPm25 * 3.2);
-                document.getElementById('pred-aqi-val').innerText = predAQI;
-                document.getElementById('pred-pm25').innerText = `${predPm25} µg/m³`;
-                
-                const predInfo = getAQIInfo(predPm25);
-                document.getElementById('pred-aqi-badge').innerText = predInfo.text;
-                document.getElementById('pred-status').innerText = predPm25 > currentPm25 ? 'Rising ↑' : 'Stable →';
+function pageInsights(){
+  const g = gate(); if (g) return {html:g};
+  const r = S.r, m = mainPol(r), bi = bIdx(r.aqi ?? 0), a = ACT[bi];
+  const list = Object.keys(POL).filter(k => r[k] != null).map(k => ({k, p:POL[k], v:r[k], lv:lvl(k, r[k]), ratio:r[k] / POL[k].lim[1]})).sort((x, y) => y.ratio - x.ratio);
+  return {html:`
+  <section class="card p-5"><h2 class="text-xl font-bold">Why is the air polluted in ${esc(S.city)}?</h2>
+    ${m ? `<p class="mt-2 text-slate-700">${m.lv >= 1 ? `Right now <b>${m.p.full}</b> is the main pollutant at ${fN(m.v, m.k === 'co' ? 2 : 0)} ${m.p.u}.` : 'All measured pollutants are low right now.'} Pollutants are listed below from highest to lowest relative to their safe limits.</p>` : '<p class="mt-2 text-slate-500">No pollutant data was returned for this city.</p>'}</section>
+  <section class="grid md:grid-cols-2 gap-5">${list.map(x => `<div class="card p-5"><div class="flex items-center justify-between gap-2"><b class="text-lg">${x.p.full}</b>${badge(LVN[x.lv], LVC[x.lv], LVB[x.lv])}</div>
+    <p class="text-2xl font-bold mt-1" style="color:${LVC[x.lv]}">${fN(x.v, x.k === 'co' ? 2 : 0)} <span class="text-sm font-medium text-slate-500">${x.p.u}</span></p>
+    <p class="mt-3"><b>Where it comes from</b><br><span class="text-slate-600">${x.p.src}</span></p>
+    <p class="mt-2"><b>Effect on health</b><br><span class="text-slate-600">${x.p.hp}</span></p>
+    <p class="mt-2"><b>How to reduce it</b><br><span class="text-slate-600">${x.p.fix}</span></p></div>`).join('')}</section>
+  <section class="card p-5"><b>What about CO₂ (carbon dioxide)?</b><p class="text-slate-600 mt-1">Outdoors, CO₂ does not harm your lungs the way particles and gases above do. It is the main greenhouse gas behind climate change, and it comes from the same fuel burning (vehicles, power plants, industry), so cutting those sources helps both your air and the climate.</p></section>
+  <section class="card p-5"><h2 class="text-lg font-bold mb-3">Protect yourself today <span class="text-sm font-medium" style="color:${BANDS[bi].c}">· ${BANDS[bi].name}</span></h2>
+    <div class="grid md:grid-cols-3 gap-4"><div class="rounded-xl bg-slate-50 p-4"><b>Outdoors</b><p class="text-slate-600 mt-1">${a.out}</p></div><div class="rounded-xl bg-slate-50 p-4"><b>Masks</b><p class="text-slate-600 mt-1">${a.mask}</p></div><div class="rounded-xl bg-slate-50 p-4"><b>At home</b><p class="text-slate-600 mt-1">${a.home}</p></div></div>
+    <p class="mt-4 text-slate-600"><b class="text-slate-800">Higher risk:</b> children, pregnant women, older adults, and people with asthma, heart or lung disease. Drink water, avoid smoking and keep prescribed inhalers or medicine within reach.</p></section>
+  <section class="card p-5"><h2 class="text-lg font-bold mb-3">How to make the air better</h2><div class="grid md:grid-cols-3 gap-4">
+    <div><b>At home</b><ul class="list-disc ml-5 mt-1 text-slate-600 space-y-1"><li>Never burn rubbish, leaves or crop waste.</li><li>Keep generators outdoors and well maintained.</li><li>Cook with ventilation or cleaner fuel.</li><li>Plant trees and keep soil or yards covered.</li></ul></div>
+    <div><b>On the road</b><ul class="list-disc ml-5 mt-1 text-slate-600 space-y-1"><li>Walk, cycle, carpool or take public transport.</li><li>Turn off the engine when waiting.</li><li>Service vehicles and fix smoky exhausts.</li><li>Avoid peak-hour trips when you can.</li></ul></div>
+    <div><b>Community and government</b><ul class="list-disc ml-5 mt-1 text-slate-600 space-y-1"><li>Modern zig-zag kilns and filters for industry.</li><li>Water roads and cover construction sites.</li><li>Ban open burning and enforce vehicle checks.</li><li>Expand green belts and clean public transport.</li></ul></div></div></section>`};
+}
 
-                // AI Insights
-                const insightsList = document.getElementById('ai-insights-list');
-                insightsList.innerHTML = `
-                    <li class="flex items-start space-x-2">
-                        <span class="bg-blue-100 text-blue-600 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5">1</span>
-                        <span>PM2.5 in <strong>${displayName}</strong> is currently recorded at <strong>${currentPm25} µg/m³</strong>.</span>
-                    </li>
-                    <li class="flex items-start space-x-2">
-                        <span class="bg-blue-100 text-blue-600 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5">2</span>
-                        <span>24-Hour ML Model projects maximum pollution near <strong>${Math.max(...forecastValues)} µg/m³</strong>.</span>
-                    </li>
-                    <li class="flex items-start space-x-2">
-                        <span class="bg-blue-100 text-blue-600 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5">3</span>
-                        <span>${aqiInfo.advice}</span>
-                    </li>
-                `;
+function pageSettings(){
+  return {html:`<form id="cf" class="card p-6 grid md:grid-cols-2 gap-5 max-w-3xl">
+    <label class="block"><span class="font-medium">Your name</span><input id="sName" class="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2.5" value="${esc(CFG.name)}"></label>
+    <label class="block"><span class="font-medium">Default city</span><select id="sCity" class="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2.5">${CITIES.map(c => `<option ${c === CFG.city ? 'selected' : ''}>${c}</option>`).join('')}</select></label>
+    <label class="block"><span class="font-medium">Temperature unit</span><select id="sUnit" class="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2.5"><option value="C" ${CFG.unit === 'C' ? 'selected' : ''}>Celsius (°C)</option><option value="F" ${CFG.unit === 'F' ? 'selected' : ''}>Fahrenheit (°F)</option></select></label>
+    <label class="block"><span class="font-medium">Alert me when AQI is at least</span><select id="sThr" class="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2.5">${[[51,'51 – Moderate'],[101,'101 – Unhealthy for sensitive groups'],[151,'151 – Unhealthy'],[201,'201 – Very unhealthy']].map(o => `<option value="${o[0] - 1}" ${CFG.thr === o[0] - 1 ? 'selected' : ''}>${o[1]}</option>`).join('')}</select></label>
+    <div class="md:col-span-2 flex flex-wrap gap-3"><button class="btn btn-p" type="submit">Save settings</button><button class="btn btn-s" type="button" id="clr">Clear saved history</button></div></form>`,
+    after(){
+      $('cf').onsubmit = e => { e.preventDefault(); CFG = {name:$('sName').value.trim() || 'Guest', city:$('sCity').value, unit:$('sUnit').value, thr:+$('sThr').value}; sv('ag_cfg', CFG); header(); toast('Settings saved'); };
+      $('clr').onclick = () => { sv('ag_hist', []); toast('History cleared'); };
+    }};
+}
+function toast(t){ const e = $('toast'); e.textContent = t; e.classList.remove('hidden'); setTimeout(() => e.classList.add('hidden'), 2200); }
 
-            } catch (err) {
-                console.error("Fetch Error:", err);
-            }
-        }
+/* ================= Router ================= */
+const FN = {home:pageHome, dashboard:pageDashboard, prediction:pagePrediction, map:pageMap, alerts:pageAlerts, history:pageHistory, insights:pageInsights, settings:pageSettings};
+$('nav').innerHTML = Object.keys(PAGES).map(k => `<a href="#/${k}" data-r="${k}"><i data-lucide="${PAGES[k][2]}" class="w-5 h-5"></i>${PAGES[k][3]}${k === 'alerts' ? '<span id="abadge" class="hidden ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-0.5"></span>' : ''}</a>`).join('');
+function route(){
+  let k = location.hash.replace(/^#\//, '') || 'home'; if (!FN[k]) k = 'home';
+  document.querySelectorAll('#nav a').forEach(a => { const on = a.dataset.r === k; a.classList.toggle('on', on); on ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current'); });
+  $('hTitle').textContent = PAGES[k][0]; $('hSub').textContent = PAGES[k][1]; document.title = PAGES[k][3] + ' – AirGuard';
+  const p = FN[k](); const v = $('view'); v.innerHTML = `<div class="fade space-y-5">${p.html}</div>`;
+  header(); lucide.createIcons(); p.after && p.after();
+}
+let lastRoute = '';
+window.addEventListener('hashchange', () => { const k = location.hash; if (k !== lastRoute){ lastRoute = k; route(); window.scrollTo(0, 0); } });
 
-        // Event Listeners
-        document.getElementById('search-btn').addEventListener('click', () => {
-            const query = document.getElementById('city-search-input').value.trim();
-            if (query) fetchAirData(query);
-        });
+/* ================= Search ================= */
+let timer; const q = $('q'), box = $('results');
+const hide = () => { box.classList.add('hidden'); box.innerHTML = ''; };
+const go = name => { q.value = ''; hide(); if (!/#\/(dashboard|prediction|insights|alerts|history)/.test(location.hash)) location.hash = '#/dashboard'; loadCity(name); };
+q.addEventListener('input', () => {
+  clearTimeout(timer); const t = q.value.trim(); if (t.length < 2) return hide();
+  timer = setTimeout(async () => {
+    try {
+      const res = await fetch(`/api/places/search?q=${encodeURIComponent(t)}`); if (!res.ok) throw 0;
+      const d = await res.json(), list = Array.isArray(d) ? d : (d.results || d.places || []);
+      box.innerHTML = list.length ? '' : '<p class="p-3 text-slate-500">No city found. Check the spelling.</p>';
+      list.slice(0, 6).forEach(p => { const b = document.createElement('button'); b.type = 'button';
+        b.innerHTML = '<b></b> <span class="text-slate-500 text-sm"></span>'; b.children[0].textContent = p.name || p.city || '';
+        b.children[1].textContent = [p.admin1 || p.region || p.province, p.country].filter(Boolean).join(', '); b.onclick = () => go(p.name || p.city); box.appendChild(b); });
+      box.classList.remove('hidden');
+    } catch { box.innerHTML = '<p class="p-3">Search is unavailable. Press Enter to try the typed name.</p>'; box.classList.remove('hidden'); }
+  }, 300);
+});
+$('sf').addEventListener('submit', e => { e.preventDefault(); const t = q.value.trim(); if (t) go(t); });
+document.addEventListener('click', e => { if (!e.target.closest('#sf')) hide(); });
+q.addEventListener('keydown', e => { if (e.key === 'Escape') hide(); });
 
-        document.getElementById('city-search-input').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                const query = document.getElementById('city-search-input').value.trim();
-                if (query) fetchAirData(query);
-            }
-        });
-
-        // Initialize default view for Lahore
-        initMap();
-        fetchAirData('Lahore');
-    </script>
+/* ================= Start ================= */
+route(); lastRoute = location.hash;
+loadCity(CFG.city);
+</script>
 </body>
 </html>
