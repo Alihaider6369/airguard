@@ -1,114 +1,298 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AirGuard - Air quality in Pakistan</title>
-<style>
-  :root { --bg:#f4f6f8; --card:#fff; --text:#1c2733; --muted:#66727f; --line:#e3e8ee; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#0f151b; --card:#18212a; --text:#e8eef3; --muted:#93a1ae; --line:#26323d; } }
-  * { box-sizing: border-box; }
-  body { margin:0; font-family: system-ui, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); }
-  main { max-width: 720px; margin: 0 auto; padding: 20px 16px 40px; }
-  h1 { font-size: 1.4rem; margin: 0 0 14px; }
-  .bar { display:flex; gap:8px; flex-wrap:wrap; position:relative; }
-  input { flex:1 1 200px; padding:12px 14px; border:1px solid var(--line); border-radius:10px; font-size:1rem; background:var(--card); color:var(--text); }
-  button { padding:12px 16px; border:0; border-radius:10px; font-size:1rem; cursor:pointer; background:#1f6feb; color:#fff; }
-  #results { position:absolute; top:52px; left:0; right:0; background:var(--card); border:1px solid var(--line); border-radius:10px; z-index:5; display:none; }
-  #results div { padding:10px 14px; cursor:pointer; } #results div:hover { background:var(--bg); }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; margin-top:16px; }
-  .where { color:var(--muted); font-size:.9rem; margin-bottom:8px; }
-  .aqi { display:flex; align-items:center; gap:16px; }
-  .badge { min-width:92px; padding:14px 10px; border-radius:12px; text-align:center; color:#111; font-weight:700; font-size:2rem; }
-  .badge small { display:block; font-size:.7rem; font-weight:600; }
-  h2 { font-size:1rem; margin:0 0 10px; color:var(--muted); font-weight:600; }
-  .big { font-size:1.4rem; font-weight:700; }
-  .muted { color:var(--muted); font-size:.85rem; margin-top:10px; }
-  #msg { margin-top:12px; color:#c0392b; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AirGuard - AI Air Pollution Prediction System</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
-<body>
-<main>
-  <h1>AirGuard <span style="font-weight:400;color:var(--muted)">- air quality in Pakistan</span></h1>
-  <div class="bar">
-    <input id="q" placeholder="Search any city in Pakistan..." autocomplete="off">
-    <button id="locate">📍 Use my location</button>
-    <div id="results"></div>
-  </div>
-  <div id="msg"></div>
-  <div id="out"></div>
-</main>
-<script>
-const $ = id => document.getElementById(id);
-const fmt = d => new Date(d + "Z").toLocaleString([], {weekday:"short", hour:"2-digit", minute:"2-digit"});
-const arrow = {rising:"▲ rising", falling:"▼ falling", stable:"→ stable"};
+<body class="bg-slate-100 font-sans text-slate-800">
 
-async function load(params, label) {
-  $("msg").textContent = ""; $("out").innerHTML = '<div class="card">Loading ' + label + '...</div>';
-  try {
-    const r = await fetch("/api/dashboard?" + new URLSearchParams(params));
-    const d = await r.json();
-    if (!r.ok) throw new Error(d.detail || "Something went wrong");
-    render(d);
-  } catch (e) { $("out").innerHTML = ""; $("msg").textContent = e.message; }
-}
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- 1. Sidebar -->
+        <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col justify-between p-4 flex-shrink-0 hidden md:flex">
+            <div>
+                <!-- Brand Header -->
+                <div class="flex items-center space-x-3 mb-8 px-2">
+                    <div class="bg-blue-600 p-2 rounded-lg text-white">
+                        <i class="fa-solid fa-wind text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-white font-bold text-lg leading-none">AirGuard</h1>
+                        <span class="text-xs text-slate-400">Clean Air • Healthy Future</span>
+                    </div>
+                </div>
 
-function render(d) {
-  const c = d.current, f = d.forecast, now = c.status, next = f.status;
-  $("out").innerHTML = `
-    <div class="card">
-      <div class="where">📍 ${d.place.display_name} · updated ${c.data_age_hours} h ago</div>
-      <h2>Right now</h2>
-      <div class="aqi"><div class="badge" style="background:${now.color}">${now.aqi}<small>AQI</small></div>
-        <div><div class="big">${now.category}</div>PM2.5: ${c.reading.pm25} µg/m³</div></div>
-      <div class="muted">${now.advice}</div>
+                <!-- Navigation Links -->
+                <nav class="space-y-1">
+                    <a href="#" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                        <i class="fa-solid fa-house w-5 text-center"></i>
+                        <span>Home</span>
+                    </a>
+                    <a href="#" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg bg-blue-600 text-white font-medium">
+                        <i class="fa-solid fa-gauge-high w-5 text-center"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="#" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                        <i class="fa-solid fa-chart-line w-5 text-center"></i>
+                        <span>Prediction</span>
+                    </a>
+                    <a href="#" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                        <i class="fa-solid fa-location-dot w-5 text-center"></i>
+                        <span>Map</span>
+                    </a>
+                    <a href="#" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition relative">
+                        <i class="fa-solid fa-bell w-5 text-center"></i>
+                        <span>Alerts</span>
+                        <span class="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full ml-auto">2</span>
+                    </a>
+                    <a href="#" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                        <i class="fa-solid fa-clock-rotate-left w-5 text-center"></i>
+                        <span>History</span>
+                    </a>
+                    <a href="#" class="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
+                        <i class="fa-solid fa-gear w-5 text-center"></i>
+                        <span>Settings</span>
+                    </a>
+                </nav>
+            </div>
+
+            <!-- Sidebar Banner -->
+            <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700/50 flex items-center space-x-3">
+                <i class="fa-solid fa-tree text-emerald-400 text-xl"></i>
+                <div class="text-xs">
+                    <p class="text-white font-semibold">Better Air</p>
+                    <p class="text-slate-400">Better Tomorrow</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto p-6 space-y-6">
+
+            <!-- Top Header & Search Bar -->
+            <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <div>
+                    <div class="flex items-center space-x-2 text-blue-600 text-sm font-medium">
+                        <i class="fa-solid fa-location-dot"></i>
+                        <span id="current-city-label">Faisalabad, Pakistan</span>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-800">AI Air Pollution Prediction System</h2>
+                    <p class="text-xs text-slate-500">Monitor today's air. Predict tomorrow's air.</p>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <!-- Weather Widget -->
+                    <div class="flex items-center space-x-3 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
+                        <i class="fa-solid fa-cloud-sun text-yellow-500 text-2xl"></i>
+                        <div class="text-xs">
+                            <span class="text-base font-bold text-slate-800">29°C</span>
+                            <span class="text-slate-500 ml-1">Partly Cloudy</span>
+                            <div class="text-[10px] text-slate-400">Humidity: 62% | Wind: 12 km/h</div>
+                        </div>
+                    </div>
+
+                    <!-- User Profile -->
+                    <div class="flex items-center space-x-2 border-l pl-4 border-slate-200">
+                        <div class="w-8 h-8 rounded-full bg-slate-700 text-white flex items-center justify-center font-semibold text-sm">
+                            AH
+                        </div>
+                        <span class="text-sm font-medium text-slate-700">Ali Haider</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- 2. Current AQI & Pollutants Grid -->
+            <section class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                
+                <!-- Main Gauge Card -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col items-center justify-center text-center">
+                    <div class="relative w-36 h-36 flex items-center justify-center">
+                        <!-- Simple Circular Representation -->
+                        <div class="w-full h-full rounded-full border-8 border-amber-500 flex flex-col items-center justify-center">
+                            <span class="text-xs font-semibold text-slate-400">AQI</span>
+                            <span class="text-3xl font-extrabold text-slate-800" id="aqi-value">156</span>
+                            <i class="fa-solid fa-wind text-slate-400 text-xs"></i>
+                        </div>
+                    </div>
+                    <span class="mt-3 px-3 py-1 bg-red-100 text-red-600 rounded-full text-xs font-semibold">Unhealthy</span>
+                    <p class="text-[11px] text-slate-500 mt-2">Sensitive groups may experience health effects.</p>
+                </div>
+
+                <!-- Pollutants Grid -->
+                <div class="lg:col-span-3 grid grid-cols-2 md:grid-cols-5 gap-3">
+                    <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 text-center">
+                        <span class="text-xs font-semibold text-slate-500">PM2.5</span>
+                        <div class="text-xl font-bold text-slate-800 my-1">82 <span class="text-[10px] text-slate-400">µg/m³</span></div>
+                        <span class="bg-red-100 text-red-600 text-[10px] px-2 py-0.5 rounded">High</span>
+                    </div>
+                    <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 text-center">
+                        <span class="text-xs font-semibold text-slate-500">PM10</span>
+                        <div class="text-xl font-bold text-slate-800 my-1">120 <span class="text-[10px] text-slate-400">µg/m³</span></div>
+                        <span class="bg-red-100 text-red-600 text-[10px] px-2 py-0.5 rounded">High</span>
+                    </div>
+                    <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 text-center">
+                        <span class="text-xs font-semibold text-slate-500">NO₂</span>
+                        <div class="text-xl font-bold text-slate-800 my-1">42 <span class="text-[10px] text-slate-400">µg/m³</span></div>
+                        <span class="bg-amber-100 text-amber-600 text-[10px] px-2 py-0.5 rounded">Moderate</span>
+                    </div>
+                    <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 text-center">
+                        <span class="text-xs font-semibold text-slate-500">CO</span>
+                        <div class="text-xl font-bold text-slate-800 my-1">0.8 <span class="text-[10px] text-slate-400">mg/m³</span></div>
+                        <span class="bg-emerald-100 text-emerald-600 text-[10px] px-2 py-0.5 rounded">Good</span>
+                    </div>
+                    <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 text-center">
+                        <span class="text-xs font-semibold text-slate-500">O₃</span>
+                        <div class="text-xl font-bold text-slate-800 my-1">65 <span class="text-[10px] text-slate-400">µg/m³</span></div>
+                        <span class="bg-amber-100 text-amber-600 text-[10px] px-2 py-0.5 rounded">Moderate</span>
+                    </div>
+
+                    <!-- Weather Parameters Bottom Row -->
+                    <div class="col-span-2 md:col-span-5 bg-white p-3 rounded-xl shadow-sm border border-slate-200 flex justify-around items-center">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-temperature-half text-blue-500 text-lg"></i>
+                            <div><span class="text-xs text-slate-400 block">Temperature</span><span class="text-sm font-bold text-slate-700">29°C</span></div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-droplet text-blue-500 text-lg"></i>
+                            <div><span class="text-xs text-slate-400 block">Humidity</span><span class="text-sm font-bold text-slate-700">62%</span></div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-wind text-blue-500 text-lg"></i>
+                            <div><span class="text-xs text-slate-400 block">Wind Speed</span><span class="text-sm font-bold text-slate-700">12 km/h</span></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. Prediction Section & History Chart -->
+            <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <!-- History Chart -->
+                <div class="lg:col-span-2 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-slate-800 text-sm">AQI History (Last 7 Days)</h3>
+                        <div class="flex space-x-1 text-xs">
+                            <button class="px-2 py-1 bg-blue-600 text-white rounded">7 Days</button>
+                            <button class="px-2 py-1 bg-slate-100 text-slate-600 rounded">30 Days</button>
+                        </div>
+                    </div>
+                    <div class="h-48">
+                        <canvas id="aqiChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Tomorrow's Prediction Card -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center space-x-2 text-purple-600 font-semibold text-xs mb-2">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            <span>Tomorrow's Prediction</span>
+                        </div>
+                        <div class="flex items-baseline space-x-2">
+                            <span class="text-4xl font-extrabold text-red-500">172</span>
+                            <span class="text-xs text-slate-400">AQI</span>
+                            <span class="bg-red-100 text-red-600 text-[10px] px-2 py-0.5 rounded ml-2">Unhealthy</span>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-2">Pollution level may increase tomorrow. Take necessary precautions.</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 mt-4 text-xs bg-slate-50 p-2 rounded-lg">
+                        <div><span class="text-slate-400 block">Predicted PM2.5</span><span class="font-bold text-slate-700">95 µg/m³</span></div>
+                        <div><span class="text-slate-400 block">Predicted PM10</span><span class="font-bold text-slate-700">145 µg/m³</span></div>
+                    </div>
+
+                    <!-- Alert Box -->
+                    <div class="mt-3 p-2.5 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-2">
+                        <i class="fa-solid fa-triangle-exclamation text-red-500"></i>
+                        <div class="text-[11px] text-red-700">
+                            <strong>Air Quality Alert:</strong> Avoid outdoor activities if possible.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. Map & AI Insights -->
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <!-- Pollution Map -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="font-bold text-slate-800 text-sm mb-3">Pollution Map</h3>
+                    <div id="map" class="h-52 rounded-lg border border-slate-200"></div>
+                </div>
+
+                <!-- AI Insights -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center space-x-2 text-blue-600 font-semibold text-sm mb-3">
+                            <i class="fa-solid fa-brain"></i>
+                            <span>AI Insights</span>
+                        </div>
+                        <ul class="space-y-2 text-xs text-slate-600">
+                            <li class="flex items-start space-x-2">
+                                <span class="bg-blue-100 text-blue-600 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5">1</span>
+                                <span>PM2.5 levels are 35% higher than usual in your area compared to last week.</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <span class="bg-blue-100 text-blue-600 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5">2</span>
+                                <span>Pollution is expected to increase in the next 24 hours due to low wind speed.</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <span class="bg-blue-100 text-blue-600 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5">3</span>
+                                <span>You can reduce exposure by using an air purifier and avoiding evening outdoor activities.</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <button class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-2 rounded-lg transition">
+                        View Detailed Report <i class="fa-solid fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+            </section>
+
+        </main>
     </div>
-    <div class="card">
-      <h2>Forecast for ${fmt(f.target_time)} (24 h ahead)</h2>
-      <div class="aqi"><div class="badge" style="background:${next.color}">${next.aqi}<small>AQI</small></div>
-        <div><div class="big">${next.category} · ${arrow[f.trend]}</div>
-        PM2.5: ${f.predicted_pm25} µg/m³${f.typical_error ? " (typical error ±" + f.typical_error + ")" : ""}</div></div>
-      <div class="muted">${f.note}</div>
-    </div>`;
-}
 
-function locate() {
-  if (!navigator.geolocation) return $("msg").textContent = "Your browser does not support location.";
-  $("msg").textContent = "Finding your location...";
-  navigator.geolocation.getCurrentPosition(
-    p => load({lat: p.coords.latitude, lon: p.coords.longitude}, "your location"),
-    e => { $("msg").textContent = e.code === 1 ? "Location is blocked. Allow it in the browser, or search for a city." : "Could not get your location."; },
-    {timeout: 15000, maximumAge: 600000});
-}
-$("locate").onclick = locate;
+    <!-- Initialization Scripts -->
+    <script>
+        // Initialize Chart.js
+        const ctx = document.getElementById('aqiChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Apr 20', 'Apr 21', 'Apr 22', 'Apr 23', 'Apr 24', 'Apr 25', 'Apr 26'],
+                datasets: [{
+                    label: 'AQI',
+                    data: [135, 120, 165, 120, 145, 122, 140],
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { min: 0, max: 250 }
+                }
+            }
+        });
 
-// Search box with suggestions
-let timer;
-$("q").oninput = () => {
-  clearTimeout(timer); const q = $("q").value.trim();
-  if (q.length < 2) { $("results").style.display = "none"; return; }
-  timer = setTimeout(async () => {
-    const places = await (await fetch("/api/places/search?q=" + encodeURIComponent(q))).json();
-    $("results").innerHTML = ""; if (!Array.isArray(places) || !places.length) return $("results").style.display = "none";
-    places.forEach(p => { const el = document.createElement("div"); el.textContent = p.display_name;
-      el.onclick = () => { $("q").value = p.display_name; $("results").style.display = "none"; load({lat: p.latitude, lon: p.longitude}, p.name); };
-      $("results").appendChild(el); });
-    $("results").style.display = "block";
-  }, 300);
-};
-$("q").onkeydown = e => { if (e.key === "Enter" && $("q").value.trim()) { $("results").style.display = "none"; load({city: $("q").value.trim()}, $("q").value.trim()); } };
-
-// Automatic detection: if location is already allowed, use it at once; if the user
-// switches location on later, detect then. Otherwise show a default city.
-(async () => {
-  let started = false;
-  try {
-    const perm = await navigator.permissions.query({name: "geolocation"});
-    perm.onchange = () => { if (perm.state === "granted") locate(); };
-    if (perm.state === "granted") { started = true; locate(); }
-  } catch (_) {}
-  if (!started) load({city: "Lahore"}, "Lahore");
-})();
-</script>
+        // Initialize Leaflet Map
+        const map = L.map('map').setView([31.4187, 73.0791], 10); // Default Faisalabad
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+        L.marker([31.4187, 73.0791]).addTo(map).bindPopup('Faisalabad AQI: 156');
+    </script>
 </body>
 </html>
